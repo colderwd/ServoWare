@@ -5,6 +5,7 @@
     <uses-permission android:name="android.permission.BLUETOOTH" />
     <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.INTERNET" />
 
     <application
         android:allowBackup="true"
@@ -32,18 +33,18 @@
 
         <activity
             android:name=".ReadRawDataActivity"
-            android:label="@string/button_ReadRawData" >
-        </activity>
+            android:label="@string/button_ReadRawData" />
 
         <activity
             android:name=".ReadCfgDataActivity"
-            android:label="@string/button_ReadCfgData" >
-        </activity>
+            android:label="@string/button_ReadCfgData" />
 
         <activity
             android:name=".ReadRamDataActivity"
-            android:label="@string/button_ReadRamData" >
-        </activity>
+            android:label="@string/button_ReadRamData" />
+
+        <activity android:name=".GeneralPatternActivity"/>
+
     </application>
 
 </manifest>

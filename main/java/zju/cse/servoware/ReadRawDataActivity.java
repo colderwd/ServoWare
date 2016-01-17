@@ -152,7 +152,8 @@ public class ReadRawDataActivity extends Activity implements Constant{
     }
 
     public void onClick_readTrace(View view){
-        mBluetoothCommunicateService.write(Util.specialFuncCommandLine(CMDCODE_SysCommand, (byte) 14));//必须停止电机并清除故障状态（OnRstFaultRecord() ）
+        //必须先停止电机并清除故障状态（OnRstFaultRecord() ）
+        mBluetoothCommunicateService.write(Util.specialFuncCommandLine(CMDCODE_SysCommand, (byte) 14));
         Toast.makeText(getApplicationContext(), "响应曲线数据读取中...", Toast.LENGTH_LONG).show();
         try {
             Thread.sleep(50);	//等待电机停止

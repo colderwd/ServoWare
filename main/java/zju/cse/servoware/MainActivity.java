@@ -244,4 +244,14 @@ public class MainActivity extends Activity implements Constant{
         }
     }
 
+    public void onClick_GeneralPattern(View view){
+        if (BluetoothConnectService.getState() != STATE_CONNECTED) {
+            mConnectService.setState(STATE_NONE);
+            Toast.makeText(this, R.string.not_connected, Toast.LENGTH_SHORT).show();
+        }
+        else {
+            Intent intent = new Intent(this,GeneralPatternActivity.class);
+            startActivity(intent);
+        }
+    }
 }

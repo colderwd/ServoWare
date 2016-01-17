@@ -28,6 +28,11 @@
             android:layout_height="wrap_content"
             android:text="@string/button_ReadRamData"
             android:onClick="onClick_ButtonReadRam"/>
+        <Button
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="通用模式"
+            android:onClick="onClick_GeneralPattern"/>
     </LinearLayout>
     <LinearLayout
         android:layout_width="match_parent"
