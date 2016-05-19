@@ -146,7 +146,7 @@ public class BluetoothCommunicateService implements Constant{
         public void write(byte[] buffer) {
             try {
                 mmOutStream.write(buffer);
-                Log.e(TAG, Util.byte2Str(buffer,buffer.length));
+                //Log.e(TAG, Util.byte2Str(buffer,buffer.length));
             } catch (IOException e) {
                 Log.e(TAG, "Exception during write", e);
             }

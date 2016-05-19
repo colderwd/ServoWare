@@ -28,7 +28,8 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:gravity="left"
-                        android:hint="0" android:numeric="integer"/>
+                        android:hint="0"
+                        android:numeric="integer"/>
                 </LinearLayout>
 
                 <LinearLayout
@@ -46,8 +47,7 @@
                         android:layout_height="wrap_content"
                         android:gravity="left"
                         android:hint="0"
-                        android:editable="false"
-                        android:numeric="integer"/>
+                        android:editable="false"/>
                 </LinearLayout>
             </LinearLayout>
             <LinearLayout
@@ -69,8 +69,7 @@
                         android:layout_height="wrap_content"
                         android:gravity="left"
                         android:hint="0"
-                        android:editable="false"
-                        android:numeric="integer"/>
+                        android:editable="false"/>
                 </LinearLayout>
 
                 <LinearLayout
@@ -88,8 +87,7 @@
                         android:layout_height="wrap_content"
                         android:gravity="left"
                         android:hint="0"
-                        android:editable="false"
-                        android:numeric="integer"/>
+                        android:editable="false"/>
                 </LinearLayout>
             </LinearLayout>
             <LinearLayout
@@ -111,8 +109,7 @@
                         android:layout_height="wrap_content"
                         android:gravity="left"
                         android:hint="0"
-                        android:editable="false"
-                        android:numeric="integer"/>
+                        android:editable="false"/>
                 </LinearLayout>
 
                 <LinearLayout
@@ -129,7 +126,8 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:gravity="left"
-                        android:hint="0" android:numeric="integer"/>
+                        android:hint="0"
+                        android:numeric="integer"/>
                 </LinearLayout>
             </LinearLayout>
             <LinearLayout
@@ -150,7 +148,8 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:gravity="left"
-                        android:hint="0" android:numeric="integer"/>
+                        android:hint="0"
+                        android:numeric="integer"/>
                 </LinearLayout>
 
                 <LinearLayout
@@ -167,7 +166,8 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:gravity="left"
-                        android:hint="0" android:numeric="integer"/>
+                        android:hint="0"
+                        android:numeric="integer"/>
                 </LinearLayout>
             </LinearLayout>
             

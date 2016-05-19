@@ -121,27 +121,6 @@
         </LinearLayout>
     </LinearLayout>
 
-    <RadioGroup android:id="@+id/rg_show"
-        android:layout_weight="0"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:layout_marginLeft="20dp"
-        android:layout_marginRight="20dp">
-        <RadioButton android:id="@+id/rb_showContent"
-            android:text="内容"
-            android:layout_gravity="center"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:checked="true"/>
-        <RadioButton android:id="@+id/rb_showAll"
-            android:text="全部"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"/>
-    </RadioGroup>
-
     <TextView android:id="@+id/showData"
         android:visibility="gone"
         android:layout_marginLeft="30dp"

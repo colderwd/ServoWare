@@ -16,7 +16,7 @@ public class Util {
     public static String byte2Str(byte[] buf, int len) {
         StringBuffer out = new StringBuffer();
         for (int i = 0; i < len; i++) {
-            out.append(String.format("%02x, ", buf[i]));
+            out.append(String.format("%02x,", buf[i]));
         }
         return out.toString();
     }

@@ -31,11 +31,10 @@ public class ReadRawDataActivity extends Activity implements Constant{
 
     private TextView mTv_showData,mTv_xUnit;
     private EditText mEt_readFrom, mEt_readCount;
-    private RadioButton mRb_showContent, mRb_showAll;
     private Spinner mSpinner_bytesCount, mSpinner_unit;
     private byte cmdEnd[]={(byte)0x02,(byte)0x55,(byte)0x08,(byte)0x00,(byte)0x01,(byte)0x00,(byte)0x80,(byte)0x08,(byte)0x10,(byte)0x00,(byte)0x61,(byte)0xEF},
                 mReceived[]=new byte[124], mRecvdData[] = new byte[2100];
-    private int mColumn = 16, mByteoffset = 1, mAddress, mReadLen,mRecvdCount = 0,mPos=0,mTraceData[]=new int[1000],typeOFdata;
+    private int mColumn = 16, mByteoffset = 1, mAddress, mReadLen,mRecvdCount = 0,mTraceData[]=new int[1000],typeOFdata;
     private BluetoothCommunicateService mBluetoothCommunicateService = null;
     private LinearLayout ll_trace;
     private TraceView mTraceview;
@@ -78,7 +77,7 @@ public class ReadRawDataActivity extends Activity implements Constant{
                                        int arg2, long arg3) {
                 mColumn = Integer.valueOf(mSpinner_bytesCount.getSelectedItem().toString());
                 if (mTv_showData.getVisibility()==View.VISIBLE) {
-                    mTv_showData.setText(setShowData(mReceived, mColumn, mByteoffset, mAddress, mPos, mReadLen));
+                    mTv_showData.setText(setShowData(mReceived, mColumn, mByteoffset, mAddress, mReadLen));
                 }
             }
 
@@ -100,7 +99,7 @@ public class ReadRawDataActivity extends Activity implements Constant{
                                        int arg2, long arg3) {
                 mByteoffset = Integer.valueOf(mSpinner_unit.getSelectedItem().toString());
                 if (mTv_showData.getVisibility()==View.VISIBLE) {
-                    mTv_showData.setText(setShowData(mReceived, mColumn, mByteoffset, mAddress, mPos, mReadLen));
+                    mTv_showData.setText(setShowData(mReceived, mColumn, mByteoffset, mAddress, mReadLen));
                 }
 
             }
@@ -110,31 +109,6 @@ public class ReadRawDataActivity extends Activity implements Constant{
 
             }
 
-        });
-
-        mRb_showContent = (RadioButton) findViewById(R.id.rb_showContent);
-        mRb_showContent.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                if (isChecked) {
-                    mPos = 10;
-                    if (mTv_showData.getVisibility()==View.VISIBLE) {
-                        mTv_showData.setText(setShowData(mReceived, mColumn, mByteoffset, mAddress, mPos, mReadLen));
-                    }
-                }
-            }
-        });
-        mRb_showAll = (RadioButton)findViewById(R.id.rb_showAll);
-        mRb_showAll.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                if (isChecked) {
-                    mPos = 0;
-                    if (mTv_showData.getVisibility()==View.VISIBLE) {
-                        mTv_showData.setText(setShowData(mReceived, mColumn, mByteoffset, mAddress, mPos, mReadLen));
-                    }
-                }
-            }
         });
     }
 
@@ -186,9 +160,11 @@ public class ReadRawDataActivity extends Activity implements Constant{
             mReadLen = Integer.valueOf(sReadCount, 16);
             if(mReadLen >= 0x70){
                 mReadLen = 0x70;
+                mEt_readCount.setText("70");
             }
             if(mReadLen == 100){
                 mReadLen= 0x60;  //防止与读动态曲线冲突
+                mEt_readCount.setText("60");
             }
         }else {
             mReadLen= 0x60;
@@ -196,10 +172,9 @@ public class ReadRawDataActivity extends Activity implements Constant{
         mBluetoothCommunicateService.write(Util.rdDatCmmandLine(mAddress,mReadLen));
     }
 
-    private String setShowData(byte[] received, int column, int byteoffset, int address,int pos, int len)
+    private String setShowData(byte[] received, int column, int byteoffset, int address, int len)
     {
-        if(pos==0) len+=12;//显示全部
-        StringBuffer display  = new StringBuffer();
+        StringBuilder display  = new StringBuilder();
         int i;
         display.append(String.format("0x%04x: ", address));
         if(column == 0)
@@ -212,11 +187,11 @@ public class ReadRawDataActivity extends Activity implements Constant{
             }
             if(byteoffset == 0 ||(i % byteoffset != 0)&&(i!=0))
             {
-                display.append(String.format("%02x", received[i+pos]));
+                display.append(String.format("%02x", received[i+10]));
             }
             else
             {
-                display.append(String.format(" %02x", received[i+pos]));
+                display.append(String.format(" %02x", received[i+10]));
             }
         }
 
@@ -234,8 +209,8 @@ public class ReadRawDataActivity extends Activity implements Constant{
                 case MESSAGE_READ:
                     byte[] readBuf = (byte[]) msg.obj;
                     // construct a string from the valid bytes in the buffer   new String(readBuf, 0, msg.arg1)
-                    String readMessage = Util.byte2Str(readBuf, msg.arg1);
-                    Log.i("READ", "message received : " + readMessage);
+                    //String readMessage = Util.byte2Str(readBuf, msg.arg1);
+                    //Log.i("READ", "message received : " + readMessage);
                     try {
                         System.arraycopy(readBuf, 0, mReceived, mRecvdCount, msg.arg1);
                     }catch (Exception e){
@@ -267,12 +242,7 @@ public class ReadRawDataActivity extends Activity implements Constant{
                                     break;
                                 default:
                                     Toast.makeText(getApplicationContext(), "读取数据成功！", Toast.LENGTH_SHORT).show();
-                                    if(mRb_showAll.isChecked()){
-                                        mPos = 0;
-                                    }else{
-                                        mPos = 10;
-                                    }
-                                    mTv_showData.setText(setShowData(mReceived, mColumn, mByteoffset, mAddress, mPos, mReadLen));
+                                    mTv_showData.setText(setShowData(mReceived, mColumn, mByteoffset, mAddress, mReadLen));
                                     break;
                             }
                         }else {
@@ -373,13 +343,6 @@ public class ReadRawDataActivity extends Activity implements Constant{
             paint2.setStrokeWidth(3);
         }
 
-        /*public boolean onTouchEvent(MotionEvent e){
-            int x0=(int)e.getX();
-            int y0=(int)e.getY();
-            invalidate();
-            return super.onTouchEvent(e);
-        }*/
-
         protected void onDraw(Canvas canvas){
             int width = ll_trace.getWidth();
             int height = ll_trace.getHeight()-mTv_xUnit.getHeight();
@@ -402,7 +365,7 @@ public class ReadRawDataActivity extends Activity implements Constant{
             }
             if(nMaxData<200) nMaxData=200;
             STEP = (nMaxData-nMinData)/20;
-            if(((typeOFdata>>4)&0x0f)==0) typeOFdata+=0xa0;
+            //if(((typeOFdata>>4)&0x0f)==0) typeOFdata+=0xa0;
             //m_Xunit.Format(_T("Time Unit:%dms"), (typeOFdata>>4)&0x0f);
             switch(typeOFdata&0x0f)
             {

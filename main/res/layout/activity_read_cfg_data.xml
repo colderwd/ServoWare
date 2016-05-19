@@ -65,8 +65,25 @@
             <include layout="@layout/activity_read_cfg2" />
             <include layout="@layout/activity_read_cfg4" />
             <include layout="@layout/activity_read_cfg6" />
-
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+                <Button android:id="@+id/button_saveTofile"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:text="设置为文件"
+                    android:enabled="false"
+                    android:layout_weight="1"/>
+                <Button android:id="@+id/button_dlSets"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:text="下载设置文件"
+                    android:layout_weight="1"
+                    android:enabled="false"/>
+            </LinearLayout>
         </LinearLayout>
+
     </ScrollView>
 
 

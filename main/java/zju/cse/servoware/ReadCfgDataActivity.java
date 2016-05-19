@@ -1,6 +1,8 @@
 package zju.cse.servoware;
 
 import android.app.Activity;
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -16,7 +18,7 @@ import java.util.Arrays;
 public class ReadCfgDataActivity extends Activity implements Constant{
 
     private TextView mTv_versionInfo;
-    private Button mDownloadCfg,mInitCfg;
+    private Button mDownloadCfg,mInitCfg,mSaveToFile,mRestoreFromFile;
     private EditText mEt[] = new EditText[104];
     private byte readSysInfo[]={(byte)0x02,(byte)0x55,(byte)0x08,(byte)0x00,(byte)0x0B,(byte)0x00,(byte)0x43,(byte)0x00,(byte)0x60,(byte)0x00,(byte)0xDC,(byte)0x23},
             readRam[]={(byte)0x02,(byte)0x55,(byte)0x08,(byte)0x00,(byte)0x01,(byte)0x00,(byte)0x80,(byte)0x08,(byte)0x10,(byte)0x00,(byte)0x61,(byte)0xEF},
@@ -30,6 +32,7 @@ public class ReadCfgDataActivity extends Activity implements Constant{
     private StringBuffer VersionInfo = new StringBuffer();
     private BluetoothCommunicateService mBluetoothCommunicateService = null;
     private boolean etFlag;
+    private SharedPreferences mPreference;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -38,7 +41,7 @@ public class ReadCfgDataActivity extends Activity implements Constant{
         setContentView(R.layout.activity_read_cfg_data);
         initViews();
         etFlag = false;
-
+        mPreference = getSharedPreferences("cfgs", Context.MODE_PRIVATE);
         mBluetoothCommunicateService = new BluetoothCommunicateService(mHandler);
     }
 
@@ -107,6 +110,7 @@ public class ReadCfgDataActivity extends Activity implements Constant{
                 mBluetoothCommunicateService.write(readSysInfo);
             }
         });
+
         mInitCfg = (Button)findViewById(R.id.button_initCfg);
         mInitCfg.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -125,6 +129,83 @@ public class ReadCfgDataActivity extends Activity implements Constant{
             }
         });
 
+        mSaveToFile = (Button)findViewById(R.id.button_saveTofile);
+        mSaveToFile.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                SharedPreferences.Editor editor = mPreference.edit();
+                editor.putString("cfg0", Util.byte2Str(mRecvCfg0, mRecvCfg0.length));
+                editor.putString("cfg2", Util.byte2Str(mRecvCfg2, mRecvCfg2.length));
+                editor.putString("cfg4", Util.byte2Str(mRecvCfg4, mRecvCfg4.length));
+                editor.putString("cfg6", Util.byte2Str(mRecvCfg6, 16));
+                editor.apply();
+                Toast.makeText(getApplicationContext(), "配置参数已下载！",
+                        Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        mRestoreFromFile = (Button)findViewById(R.id.button_dlSets);
+        mRestoreFromFile.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                String cfgofAll = mPreference.getString("cfg0","notInit"); //cfg0-------------------------------------------------
+                if(!cfgofAll.equals("notInit")){
+                    String[] cfgs = cfgofAll.split(",");
+                    byte[] cfg = new byte[64];
+                    for (int i = 0; i < 64; i++) {
+                        cfg[i] = Integer.valueOf(cfgs[i],16).byteValue();
+                    }
+                    mBluetoothCommunicateService.write(Util.wrCfgCommandLine(cfg, 0));
+                    try {
+                        Thread.sleep(100);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                    cfgofAll = mPreference.getString("cfg2","notInit");//cfg2-------------------------------------------------
+                    cfgs = cfgofAll.split(",");
+                    for (int i = 0; i < 64; i++) {
+                        cfg[i] = Integer.valueOf(cfgs[i],16).byteValue();
+                    }
+                    mBluetoothCommunicateService.write(Util.wrCfgCommandLine(cfg, 0x20));
+                    try {
+                        Thread.sleep(100);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                    cfgofAll = mPreference.getString("cfg4","notInit");//cfg4-------------------------------------------------
+                    cfgs = cfgofAll.split(",");
+                    for (int i = 0; i < 64; i++) {
+                        cfg[i] = Integer.valueOf(cfgs[i],16).byteValue();
+                    }
+                    mBluetoothCommunicateService.write(Util.wrCfgCommandLine(cfg, 0x40));
+                    try {
+                        Thread.sleep(100);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                    cfgofAll = mPreference.getString("cfg6","notInit");//cfg6-------------------------------------------------
+                    cfgs = cfgofAll.split(",");
+                    for (int i = 0; i < 16; i++) {
+                        cfg[i] = Integer.valueOf(cfgs[i],16).byteValue();
+                    }
+                    mBluetoothCommunicateService.write(Util.wrCfgCommandLine(Arrays.copyOfRange(cfg, 0, 16), 0x60));
+                    try {
+                        Thread.sleep(100);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                    Toast.makeText(getApplicationContext(), "组态下载完毕！",
+                            Toast.LENGTH_SHORT).show();
+                    mDataLen = 0x60;
+                    failureSymbol = CMDCODE_READSYSINFO;
+                    mBluetoothCommunicateService.write(readSysInfo);
+                }else{
+                    Toast.makeText(getApplicationContext(), "配置文件为空！",
+                            Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
+
         mTv_versionInfo = (TextView)findViewById(R.id.tv_versionInfo);
         mTv_versionInfo.setFocusable(true);
         mTv_versionInfo.setFocusableInTouchMode(true);
@@ -132,136 +213,40 @@ public class ReadCfgDataActivity extends Activity implements Constant{
         mTv_versionInfo.requestFocusFromTouch();
     }
 
+
     private void showDataCfg0(byte[] cfg0){
         if(cfg0.length == 64){
-            mEt[0].setText(String.format("%01d", ((0x00ff&cfg0[1])<<8) +(0x00ff &  cfg0[0] )));
-            mEt[1].setText(String.format("%01d", ((0x00ff&cfg0[3])<<8) +(0x00ff &  cfg0[2] )));
-            mEt[2].setText(String.format("%01d", ((0x00ff&cfg0[5])<<8) +(0x00ff &  cfg0[4] )));
-            mEt[3].setText(String.format("%01d", ((0x00ff&cfg0[7])<<8) +(0x00ff &  cfg0[6] )));
-            mEt[4].setText(String.format("%01d", ((0x00ff&cfg0[9])<<8) +(0x00ff &  cfg0[8] )));
-            mEt[5].setText(String.format("%01d", ((0x00ff&cfg0[11])<<8) +(0x00ff &  cfg0[10] )));
-            mEt[6].setText(String.format("%01d", ((0x00ff&cfg0[13])<<8) +(0x00ff &  cfg0[12] )));
-            mEt[7].setText(String.format("%01d", ((0x00ff&cfg0[15])<<8) +(0x00ff &  cfg0[14] )));
-            mEt[8].setText(String.format("%01d", ((0x00ff&cfg0[17])<<8) +(0x00ff &  cfg0[16] )));
-            mEt[9].setText(String.format("%01d", ((0x00ff&cfg0[19])<<8) +(0x00ff &  cfg0[18] )));
-            mEt[10].setText(String.format("%01d", ((0x00ff&cfg0[21])<<8) +(0x00ff &  cfg0[20] )));
-            mEt[11].setText(String.format("%01d", ((0x00ff&cfg0[23])<<8) +(0x00ff &  cfg0[22] )));
-            mEt[12].setText(String.format("%01d", ((0x00ff&cfg0[25])<<8) +(0x00ff &  cfg0[24] )));
-            mEt[13].setText(String.format("%01d", ((0x00ff&cfg0[27])<<8) +(0x00ff &  cfg0[26] )));
-            mEt[14].setText(String.format("%01d", ((0x00ff&cfg0[29])<<8) +(0x00ff &  cfg0[28] )));
-            mEt[15].setText(String.format("%01d", ((0x00ff&cfg0[31])<<8) +(0x00ff &  cfg0[30] )));
-            mEt[16].setText(String.format("%01d", ((0x00ff&cfg0[33])<<8) +(0x00ff &  cfg0[32] )));
-            mEt[17].setText(String.format("%01d", ((0x00ff&cfg0[35])<<8) +(0x00ff &  cfg0[34] )));
-            mEt[18].setText(String.format("%01d", ((0x00ff&cfg0[37])<<8) +(0x00ff &  cfg0[36] )));
-            mEt[19].setText(String.format("%01d", ((0x00ff&cfg0[39])<<8) +(0x00ff &  cfg0[38] )));
-            mEt[20].setText(String.format("%01d", ((0x00ff&cfg0[41])<<8) +(0x00ff &  cfg0[40] )));
-            mEt[21].setText(String.format("%01d", ((0x00ff&cfg0[43])<<8) +(0x00ff &  cfg0[42] )));
-            mEt[22].setText(String.format("%01d", ((0x00ff&cfg0[45])<<8) +(0x00ff &  cfg0[44] )));
-            mEt[23].setText(String.format("%01d", ((0x00ff&cfg0[47])<<8) +(0x00ff &  cfg0[46] )));
-            mEt[24].setText(String.format("%01d", ((0x00ff&cfg0[49])<<8) +(0x00ff &  cfg0[48] )));
-            mEt[25].setText(String.format("%01d", ((0x00ff&cfg0[51])<<8) +(0x00ff &  cfg0[50] )));
-            mEt[26].setText(String.format("%01d", ((0x00ff&cfg0[53])<<8) +(0x00ff &  cfg0[52] )));
-            mEt[27].setText(String.format("%01d", ((0x00ff&cfg0[55])<<8) +(0x00ff &  cfg0[54] )));
-            mEt[28].setText(String.format("%01d", ((0x00ff&cfg0[57])<<8) +(0x00ff &  cfg0[56] )));
-            mEt[29].setText(String.format("%01d", ((0x00ff&cfg0[59])<<8) +(0x00ff &  cfg0[58] )));
-            mEt[30].setText(String.format("%01d", ((0x00ff&cfg0[61])<<8) +(0x00ff &  cfg0[60] )));
-            mEt[31].setText(String.format("%01d", ((0x00ff&cfg0[63])<<8) +(0x00ff &  cfg0[62] )));
+            for(int i=0; i<32;i++){
+                mEt[i].setText(String.format("%01d", ((0x00ff&cfg0[2*i+1])<<8) +(0x00ff &  cfg0[2*i] )));
+            }
         }
-
     }
 
-    private void showDataCfg2(byte[] cfg0){
-        if(cfg0.length == 64){
-            mEt[32].setText(String.format("%01d", ((0x00ff&cfg0[1])<<8) +(0x00ff &  cfg0[0] )));
-            mEt[33].setText(String.format("%01d", ((0x00ff&cfg0[3])<<8) +(0x00ff &  cfg0[2] )));
-            mEt[34].setText(String.format("%01d", ((0x00ff&cfg0[5])<<8) +(0x00ff &  cfg0[4] )));
-            mEt[35].setText(String.format("%01d", ((0x00ff&cfg0[7])<<8) +(0x00ff &  cfg0[6] )));
-            mEt[36].setText(String.format("%01d", ((0x00ff&cfg0[9])<<8) +(0x00ff &  cfg0[8] )));
-            mEt[37].setText(String.format("%01d", ((0x00ff&cfg0[11])<<8) +(0x00ff &  cfg0[10] )));
-            mEt[38].setText(String.format("%01d", ((0x00ff&cfg0[13])<<8) +(0x00ff &  cfg0[12] )));
-            mEt[39].setText(String.format("%01d", ((0x00ff&cfg0[15])<<8) +(0x00ff &  cfg0[14] )));
-            mEt[40].setText(String.format("%01d", ((0x00ff&cfg0[17])<<8) +(0x00ff &  cfg0[16] )));
-            mEt[41].setText(String.format("%01d", ((0x00ff&cfg0[19])<<8) +(0x00ff &  cfg0[18] )));
-            mEt[42].setText(String.format("%01d", ((0x00ff&cfg0[21])<<8) +(0x00ff &  cfg0[20] )));
-            mEt[43].setText(String.format("%01d", ((0x00ff&cfg0[23])<<8) +(0x00ff &  cfg0[22] )));
-            mEt[44].setText(String.format("%01d", ((0x00ff&cfg0[25])<<8) +(0x00ff &  cfg0[24] )));
-            mEt[45].setText(String.format("%01d", ((0x00ff&cfg0[27])<<8) +(0x00ff &  cfg0[26] )));
-            mEt[46].setText(String.format("%01d", ((0x00ff&cfg0[29])<<8) +(0x00ff &  cfg0[28] )));
-            mEt[47].setText(String.format("%01d", ((0x00ff&cfg0[31])<<8) +(0x00ff &  cfg0[30] )));
-            mEt[48].setText(String.format("%01d", ((0x00ff&cfg0[33])<<8) +(0x00ff &  cfg0[32] )));
-            mEt[49].setText(String.format("%01d", ((0x00ff&cfg0[35])<<8) +(0x00ff &  cfg0[34] )));
-            mEt[50].setText(String.format("%01d", ((0x00ff&cfg0[37])<<8) +(0x00ff &  cfg0[36] )));
-            mEt[51].setText(String.format("%01d", ((0x00ff&cfg0[39])<<8) +(0x00ff &  cfg0[38] )));
-            mEt[52].setText(String.format("%01d", ((0x00ff&cfg0[41])<<8) +(0x00ff &  cfg0[40] )));
-            mEt[53].setText(String.format("%01d", ((0x00ff&cfg0[43])<<8) +(0x00ff &  cfg0[42] )));
-            mEt[54].setText(String.format("%01d", ((0x00ff&cfg0[45])<<8) +(0x00ff &  cfg0[44] )));
-            mEt[55].setText(String.format("%01d", ((0x00ff&cfg0[47])<<8) +(0x00ff &  cfg0[46] )));
-            mEt[56].setText(String.format("%01d", ((0x00ff&cfg0[49])<<8) +(0x00ff &  cfg0[48] )));
-            mEt[57].setText(String.format("%01d", ((0x00ff&cfg0[51])<<8) +(0x00ff &  cfg0[50] )));
-            mEt[58].setText(String.format("%01d", ((0x00ff&cfg0[53])<<8) +(0x00ff &  cfg0[52] )));
-            mEt[59].setText(String.format("%01d", ((0x00ff&cfg0[55])<<8) +(0x00ff &  cfg0[54] )));
-            mEt[60].setText(String.format("%01d", ((0x00ff&cfg0[57])<<8) +(0x00ff &  cfg0[56] )));
-            mEt[61].setText(String.format("%01d", ((0x00ff&cfg0[59])<<8) +(0x00ff &  cfg0[58] )));
-            mEt[62].setText(String.format("%01d", ((0x00ff&cfg0[61])<<8) +(0x00ff &  cfg0[60] )));
-            mEt[63].setText(String.format("%01d", ((0x00ff&cfg0[63])<<8) +(0x00ff &  cfg0[62] )));
+    private void showDataCfg2(byte[] cfg2){
+        if(cfg2.length == 64){
+            for(int i=0; i<32;i++){
+                mEt[i+32].setText(String.format("%01d", ((0x00ff&cfg2[2*i+1])<<8) +(0x00ff &  cfg2[2*i] )));
+            }
         }
-
     }
 
-    private void showDataCfg4(byte[] cfg0){
-        if(cfg0.length == 64){
-            mEt[64].setText(String.format("%01d", ((0x00ff&cfg0[1])<<8) +(0x00ff &  cfg0[0] )));
-            mEt[65].setText(String.format("%01d", ((0x00ff&cfg0[3])<<8) +(0x00ff &  cfg0[2] )));
-            mEt[66].setText(String.format("%01d", ((0x00ff&cfg0[5])<<8) +(0x00ff &  cfg0[4] )));
-            mEt[67].setText(String.format("%01d", ((0x00ff&cfg0[7])<<8) +(0x00ff &  cfg0[6] )));
-            mEt[68].setText(String.format("%01d", ((0x00ff&cfg0[9])<<8) +(0x00ff &  cfg0[8] )));
-            mEt[69].setText(String.format("%01d", ((0x00ff&cfg0[11])<<8) +(0x00ff &  cfg0[10] )));
-            mEt[70].setText(String.format("%01d", ((0x00ff&cfg0[13])<<8) +(0x00ff &  cfg0[12] )));
-            mEt[71].setText(String.format("%01d", ((0x00ff&cfg0[15])<<8) +(0x00ff &  cfg0[14] )));
-            mEt[72].setText(String.format("%01d", ((0x00ff&cfg0[17])<<8) +(0x00ff &  cfg0[16] )));
-            mEt[73].setText(String.format("%01d", ((0x00ff & cfg0[19]) << 8) + (0x00ff & cfg0[18])));
-            mEt[74].setText(String.format("%01d", ((0x00ff & cfg0[21]) << 8) + (0x00ff & cfg0[20])));
-            mEt[75].setText(String.format("%01d", ((0x00ff & cfg0[23]) << 8) + (0x00ff & cfg0[22])));
-            mEt[76].setText(String.format("%01d", ((0x00ff & cfg0[25]) << 8) + (0x00ff & cfg0[24])));
-            mEt[77].setText(String.format("%01d", ((0x00ff & cfg0[27]) << 8) + (0x00ff & cfg0[26])));
-            mEt[78].setText(String.format("%01d", ((0x00ff & cfg0[29]) << 8) + (0x00ff & cfg0[28])));
-            mEt[79].setText(String.format("%01d", ((0x00ff & cfg0[31]) << 8) + (0x00ff & cfg0[30])));
-            mEt[80].setText(String.format("%01d", ((0x00ff & cfg0[33]) << 8) + (0x00ff & cfg0[32])));
-            mEt[81].setText(String.format("%01d", ((0x00ff & cfg0[35]) << 8) + (0x00ff & cfg0[34])));
-            mEt[82].setText(String.format("%01d", ((0x00ff & cfg0[37]) << 8) + (0x00ff & cfg0[36])));
-            mEt[83].setText(String.format("%01d", ((0x00ff & cfg0[39]) << 8) + (0x00ff & cfg0[38])));
-            mEt[84].setText(String.format("%01d", ((0x00ff & cfg0[41]) << 8) + (0x00ff & cfg0[40])));
-            mEt[85].setText(String.format("%01d", ((0x00ff & cfg0[43]) << 8) + (0x00ff & cfg0[42])));
-            mEt[86].setText(String.format("%01d", ((0x00ff & cfg0[45]) << 8) + (0x00ff & cfg0[44])));
-            mEt[87].setText(String.format("%01d", ((0x00ff & cfg0[47]) << 8) + (0x00ff & cfg0[46])));
-            mEt[88].setText(String.format("%01d", ((0x00ff & cfg0[49]) << 8) + (0x00ff & cfg0[48])));
-            mEt[89].setText(String.format("%01d", ((0x00ff & cfg0[51]) << 8) + (0x00ff & cfg0[50])));
-            mEt[90].setText(String.format("%01d", ((0x00ff & cfg0[53]) << 8) + (0x00ff & cfg0[52])));
-            mEt[91].setText(String.format("%01d", ((0x00ff & cfg0[55]) << 8) + (0x00ff & cfg0[54])));
-            mEt[92].setText(String.format("%01d", ((0x00ff & cfg0[57]) << 8) + (0x00ff & cfg0[56])));
-            mEt[93].setText(String.format("%01d", ((0x00ff & cfg0[59]) << 8) + (0x00ff & cfg0[58])));
-            mEt[94].setText(String.format("%01d", ((0x00ff & cfg0[61]) << 8) + (0x00ff & cfg0[60])));
-            mEt[95].setText(String.format("%01d", ((0x00ff & cfg0[63]) << 8) + (0x00ff & cfg0[62])));
+    private void showDataCfg4(byte[] cfg4){
+        if(cfg4.length == 64){
+            for(int i=0; i<32;i++){
+                mEt[i+64].setText(String.format("%01d", ((0x00ff&cfg4[2*i+1])<<8) +(0x00ff &  cfg4[2*i] )));
+            }
         }
-
     }
 
-    private void showDataCfg6(byte[] cfg0){
-        if(cfg0.length == 24){
-            mEt[96].setText(String.format("%01d", ((0x00ff&cfg0[1])<<8) +(0x00ff &  cfg0[0] )));
-            mEt[97].setText(String.format("%01d", ((0x00ff&cfg0[3])<<8) +(0x00ff &  cfg0[2] )));
-            mEt[98].setText(String.format("%01d", ((0x00ff&cfg0[5])<<8) +(0x00ff &  cfg0[4] )));
-            mEt[99].setText(String.format("%01d", ((0x00ff&cfg0[7])<<8) +(0x00ff &  cfg0[6] )));
-            mEt[100].setText(String.format("%01d", ((0x00ff&cfg0[9])<<8) +(0x00ff &  cfg0[8] )));
-            mEt[101].setText(String.format("%01d", ((0x00ff&cfg0[11])<<8) +(0x00ff &  cfg0[10] )));
-            mEt[102].setText(String.format("%01d", ((0x00ff&cfg0[13])<<8) +(0x00ff &  cfg0[12] )));
-            mEt[103].setText(String.format("%01d", ((0x00ff&cfg0[15])<<8) +(0x00ff &  cfg0[14] )));
-
-            StringBuffer serialNum = new StringBuffer(String.format("%04d", ((0x00ff&cfg0[19])<<8) +(0x00ff &  cfg0[18] )));
-            serialNum.append("-").append(String.format("%04d", ((0x00ff&cfg0[17])<<8) +(0x00ff &  cfg0[16] )));
+    private void showDataCfg6(byte[] cfg6){
+        if(cfg6.length == 24){
+            for(int i=0; i<8;i++){
+                mEt[i+96].setText(String.format("%01d", ((0x00ff&cfg6[2*i+1])<<8) +(0x00ff &  cfg6[2*i] )));
+            }
+            StringBuffer serialNum = new StringBuffer(String.format("%04d", ((0x00ff&cfg6[19])<<8) +(0x00ff &  cfg6[18] )));
+            serialNum.append("-").append(String.format("%04d", ((0x00ff&cfg6[17])<<8) +(0x00ff &  cfg6[16] )));
             ((TextView) findViewById(R.id.tv_SerialNum)).setText(serialNum);
         }
-
     }
 
     private void showAbout(){
@@ -521,8 +506,8 @@ public class ReadCfgDataActivity extends Activity implements Constant{
                 case MESSAGE_READ:
                     byte[] readBuf = (byte[]) msg.obj;
                     // construct a string from the valid bytes in the buffer   new String(readBuf, 0, msg.arg1)
-                    String readMessage = Util.byte2Str(readBuf, msg.arg1);
-                    Log.i("READ", "Cfg message received : " + readMessage);
+                    //String readMessage = Util.byte2Str(readBuf, msg.arg1);
+                    //Log.i("READ", "Cfg message received : " + readMessage);
                     try {
                         System.arraycopy(readBuf, 0, mReceived, mRecvCount, msg.arg1);
                     }catch (Exception e){
@@ -590,7 +575,10 @@ public class ReadCfgDataActivity extends Activity implements Constant{
                                             Toast.makeText(getApplicationContext(), "读取完毕！",
                                                     Toast.LENGTH_SHORT).show();
                                             mDataLen = 0x60;
-                                            mDownloadCfg.setEnabled(true); mInitCfg.setEnabled(true);
+                                            if(!mDownloadCfg.isEnabled()){
+                                                mDownloadCfg.setEnabled(true); mInitCfg.setEnabled(true);
+                                                mSaveToFile.setEnabled(true); mRestoreFromFile.setEnabled(true);
+                                            }
                                             break;
                                     }
                                     break;

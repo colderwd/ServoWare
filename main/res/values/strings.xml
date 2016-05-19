@@ -22,5 +22,5 @@
 
     <string name="button_ReadRawData">调试分析内存*</string>
     <string name="button_ReadCfgData">系统参数设置*</string>
-    <string name="button_ReadRamData">系统特性测试*</string>
+    <string name="button_ReadRamData">系统特性检测*</string>
 </resources>

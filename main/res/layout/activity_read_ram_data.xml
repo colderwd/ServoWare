@@ -21,19 +21,27 @@
                 android:layout_height="wrap_content"
                 android:text="运行状态"
                 android:textSize="20sp"/>
+            <TextView android:id="@+id/tv_count"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:textSize="15sp"/>
             <TextView android:id="@+id/tv_checkFail"
-                android:layout_width="match_parent"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="end"
                 android:textColor="@android:color/holo_blue_light"
                 android:textAlignment="textEnd"
+                android:text="等待自检"
                 android:textSize="15sp"/>
         </LinearLayout>
 
-        <Button android:onClick="onClick_readData"
+        <ToggleButton android:onClick="onClick_readData"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="通讯"/>
+            android:textOff="开始通讯"
+            android:textOn="停止"/>
     </LinearLayout>
 
     <View

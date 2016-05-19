@@ -17,7 +17,7 @@
 	<!-- 已经配对的设备信息 -->
 	<ListView android:id="@+id/paired_devices"
 		android:layout_width="match_parent"
-		android:layout_height="wrap_content"
+		android:layout_height="300dp"
 		android:stackFromBottom="true"
 		android:layout_weight="1"/>   
 

@@ -2,7 +2,9 @@ package zju.cse.servoware;
 
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
+import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.app.Activity;
 import android.os.Handler;
@@ -40,6 +42,8 @@ public class MainActivity extends Activity implements Constant{
     private BluetoothAdapter mBluetoothAdapter = null;
     // Member object for the chat services
     private BluetoothConnectService mConnectService = null;
+    private SharedPreferences mPreference;
+    private boolean autoFlag;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -49,7 +53,7 @@ public class MainActivity extends Activity implements Constant{
         requestWindowFeature(Window.FEATURE_CUSTOM_TITLE);
         setContentView(R.layout.activity_main);
         getWindow().setFeatureInt(Window.FEATURE_CUSTOM_TITLE, R.layout.custom_title);
-
+        mPreference = getSharedPreferences("bluetooth", Context.MODE_PRIVATE);
         // Set up the custom title
         mTitle = (TextView) findViewById(R.id.title_left_text);
         mTitle.setText(R.string.app_name);
@@ -80,30 +84,29 @@ public class MainActivity extends Activity implements Constant{
 
         // Get local Bluetooth adapter
         mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-
+        autoFlag = true;
         // If the adapter is null, then Bluetooth is not supported
         if (mBluetoothAdapter == null) {
             Toast.makeText(this, "Bluetooth is not available", Toast.LENGTH_LONG).show();
             finish();
             return;
         }else{
-            Toast.makeText(getApplicationContext(), "请按菜单键选择设备连接！", Toast.LENGTH_LONG).show();
+            //Toast.makeText(getApplicationContext(), "请按菜单键选择设备连接！", Toast.LENGTH_LONG).show();
+            if (!mBluetoothAdapter.isEnabled()) {
+                Intent enableIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+                startActivityForResult(enableIntent, REQUEST_ENABLE_BT);
+                autoFlag = false;
+            }
         }
     }
+
+
 
     @Override
     public void onStart() {
         super.onStart();
-
-        // If BT is not on, request that it be enabled.
-        // setupChat() will then be called during onActivityResult
-        if (!mBluetoothAdapter.isEnabled()) {
-            Intent enableIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-            startActivityForResult(enableIntent, REQUEST_ENABLE_BT);
-            // Otherwise, setup the chat session
-        } else {
-            if (mConnectService == null)
-                mConnectService = new BluetoothConnectService(mHandler);
+        if (mConnectService == null){
+            mConnectService = new BluetoothConnectService(mHandler);
         }
     }
 
@@ -111,9 +114,24 @@ public class MainActivity extends Activity implements Constant{
     public synchronized void onResume() {
         super.onResume();
         Log.e("Main", "+ ON RESUME +");
-        if (mConnectService != null)
+        if (mConnectService != null){
             mConnectService.setState(BluetoothConnectService.mState);
+            if(mConnectService.getState() != BluetoothConnectService.STATE_CONNECTED && autoFlag){
+                blueToothInit();
+            }
+            autoFlag = true;
+        }
 
+    }
+
+    private void blueToothInit() {
+        String BlueToothAddr = mPreference.getString("btAddr","notInit");
+            if ((!BlueToothAddr.equals("notInit")) && mConnectService != null) {
+                mConnectService.stop();
+                BluetoothDevice device = mBluetoothAdapter.getRemoteDevice(BlueToothAddr);
+                // Attempt to connect to the device
+                mConnectService.connect(device);
+            }
     }
 
     @Override
@@ -173,9 +191,12 @@ public class MainActivity extends Activity implements Constant{
                     String address = data.getExtras()
                             .getString(DeviceListActivity.EXTRA_DEVICE_ADDRESS);
                     // Get the BLuetoothDevice object
-                    BluetoothDevice device = mBluetoothAdapter.getRemoteDevice(address);
+                    //BluetoothDevice device = mBluetoothAdapter.getRemoteDevice(address);
                     // Attempt to connect to the device
-                    mConnectService.connect(device);
+                    //mConnectService.connect(device);
+                    SharedPreferences.Editor editor = mPreference.edit();//保存每次手动连接的蓝牙地址，同时覆盖上一次的
+                    editor.putString("btAddr", address);
+                    editor.apply();
                 }
                 break;
             case REQUEST_ENABLE_BT:
@@ -253,5 +274,10 @@ public class MainActivity extends Activity implements Constant{
             Intent intent = new Intent(this,GeneralPatternActivity.class);
             startActivity(intent);
         }
+    }
+
+    public void onClick_ButtonSearchBt(View view){
+        Intent serverIntent = new Intent(this, DeviceListActivity.class);
+        startActivityForResult(serverIntent, REQUEST_CONNECT_DEVICE);
     }
 }

@@ -16,8 +16,11 @@ import android.widget.RadioButton;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.widget.ToggleButton;
 
 import java.util.Arrays;
+import java.util.Timer;
+import java.util.TimerTask;
 
 public class ReadRamDataActivity extends Activity implements Constant{
 
@@ -25,11 +28,13 @@ public class ReadRamDataActivity extends Activity implements Constant{
     private byte send[]={(byte)0x02,(byte)0x55,(byte)0x08,(byte)0x00,(byte)0x0A,(byte)0x00,(byte)0x80,(byte)0x0A,(byte)0x70,(byte)0x00,(byte)0xF6,(byte)0xA6},
                 cmdEnd[]={(byte)0x02,(byte)0x55,(byte)0x08,(byte)0x00,(byte)0x01,(byte)0x00,(byte)0x80,(byte)0x08,(byte)0x10,(byte)0x00,(byte)0x61,(byte)0xEF},
                 addrHigh = 0,addrLow;
-    private int mReadLen ,mRecvdCount;
+    private int mReadLen ,mRecvdCount,mPackCount=0;
     private StringBuffer mRecvdData = new StringBuffer();
-    private String mReceived[], mDataRecv[];
+    private String  mDataRecv[];
     private BluetoothCommunicateService mBluetoothCommunicateService = null;
     private boolean timerFlag;
+    private Timer mTimer;
+    private TimerTask sendTimerTask;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -73,15 +78,35 @@ public class ReadRamDataActivity extends Activity implements Constant{
             Toast.makeText(this, R.string.not_connected, Toast.LENGTH_SHORT).show();
         }
         else {
-            timerFlag = !timerFlag;
-            if(timerFlag){
-                sendCmd();
-                ((Button)view).setText("停止");
+            if(((ToggleButton)view).isChecked()){
+                mPackCount = 0;
+                mTimer = new Timer();
+                if(sendTimerTask==null){
+                    sendTimerTask = new TimerTask(){
+                        public void run()
+                        {
+                            sendCmd();
+                        }
+
+                    };
+                }
+                mTimer.schedule(sendTimerTask, 0, MainActivity.refreshPeriod);
             }else {
-                ((Button)view).setText("通讯");
+                Toast.makeText(getApplicationContext(), "已停止通讯", Toast.LENGTH_SHORT).show();
+                if (mTimer != null) {
+                    mTimer.cancel();
+                    mTimer = null;
+                }
+                if (sendTimerTask != null) {
+                    sendTimerTask.cancel();
+                    sendTimerTask = null;
+                }
             }
         }
+
     }
+
+
 
     private void sendCmd(){
         //清空原数据
@@ -348,7 +373,7 @@ public class ReadRamDataActivity extends Activity implements Constant{
                     mRecvdCount+= msg.arg1;
                     Log.i("READ", "message received count: " + mRecvdCount + "/" + (mReadLen + 12));
                     if(mRecvdCount == (mReadLen+12)){
-                        mReceived = mRecvdData.toString().split(", ");
+                        String[] mReceived = mRecvdData.toString().split(",");
                         if(mReceived.length == mRecvdCount && CRC16.isCRCChecked(mReceived)){
 
                             addrHigh = Integer.valueOf(mReceived[7],16).byteValue();
@@ -363,16 +388,7 @@ public class ReadRamDataActivity extends Activity implements Constant{
                             showData();
                             mRecvdData.setLength(0);
                             mRecvdCount=0;
-                            if(timerFlag){
-                                try {
-                                    Thread.sleep(MainActivity.refreshPeriod);
-                                } catch (InterruptedException e) {
-                                    e.printStackTrace();
-                                }
-                                sendCmd();
-                            }else {
-                                Toast.makeText(getApplicationContext(), "已停止通讯", Toast.LENGTH_SHORT).show();
-                            }
+                            ((TextView)findViewById(R.id.tv_count)).setText("接收次数："+mPackCount++);
                         }else {
                             sendCmd();
                         }
